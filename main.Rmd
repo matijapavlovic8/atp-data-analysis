@@ -1,29 +1,99 @@
 ---
 title: "ATP Data Analysis"
-output: pdf_document
-date: "2024-01-03"
+authors: Matija Pavlović, Barbara Pašalić, Jelena Kulišić, Marko Miljković
+date: "2024-01-10"
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Instalacija potrebnih paketa.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+# install.packages("dplyr")
+# install.packages("lubridate")
+# install.packages("ggplot2")
+# install.packages("caret")
 ```
 
-## Including Plots
+Učitavanje biblioteka.
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(caret)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Učitavanje i opis podataka
+
+```{r}
+all_matches <- data.frame()
+for (year in 1991:2023) {
+  file_name <- paste0("dataset/atp_matches_", year, ".csv")
+  matches_year <- read.csv(file_name, stringsAsFactors = FALSE)
+  all_matches <- rbind(all_matches, matches_year)
+}
+
+print(head(all_matches))
+```
+
+TODO Opis ispisa
+
+```{r}
+print(names(all_matches))
+```
+
+TODO Opis ispisa
+
+```{r}
+print(summary(all_matches))
+```
+
+TODO Opis ispisa, možda uzet summary samo za neke značajke
+
+## Zadatak 1. Kakva je distribucija mečeva na specifičnim podlogama u različitim godišnjim dobima?
+
+```{r echo=FALSE}
+t1 <- all_matches %>%
+  filter(!is.na(surface) & !is.na(tourney_date) & surface != "")
+
+t1 <- select(t1, surface, tourney_date)
+
+t1$tourney_date <- as.Date(as.character(t1$tourney_date), format = "%Y%m%d", origin = "1970-01-01")
+t1$month <- month(t1$tourney_date)
+t1$season <- case_when(
+  t1$month %in% c(3, 4, 5) ~ "Spring",
+  t1$month %in% c(6, 7, 8) ~ "Summer",
+  t1$month %in% c(9, 10, 11) ~ "Fall",
+  t1$month %in% c(12, 1, 2) ~ "Winter",
+  TRUE ~ "Unknown"
+)
+
+surface_counts <- table(t1$season, t1$surface)
+surface_counts_df <- as.data.frame(surface_counts)
+names(surface_counts_df) <- c("Season", "Surface", "Frequency")
+
+ggplot(t1, aes(x = season, fill = factor(season))) +
+  geom_bar() +
+  facet_wrap(~ surface, scales = "free") +
+  labs(title = "Season Frequencies for Each Surface", x = "Season", y = "Frequency") +
+  theme_minimal()
+```
+
+TODO Opisat histogram, šta prikazuje
+
+```{r echo=FALSE}
+ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Season, scales = "free") +
+  labs(title = "Surface Frequencies for Each Season", x = "Surface", y = "Frequency") +
+  theme_minimal()
+```
+
+TODO Opisat histogram, šta prikazuje

@@ -12,9 +12,7 @@ library(caret)
 all_matches <- data.frame()
 for (year in 1991:2023) {
   file_name <- paste0("dataset/atp_matches_", year, ".csv")
-
   matches_year <- read.csv(file_name, stringsAsFactors = FALSE)
-
   all_matches <- rbind(all_matches, matches_year)
 }
 
@@ -100,14 +98,14 @@ print(contingency_table)
 chi_square_result <- chisq.test(contingency_table)
 print(chi_square_result)
 
-# Task 5
-features <- c("tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "winner_seed", "loser_seed", "winner_id", "loser_id")
+# Task 5 Wrong solution, but can be fixed
+features <- c("winner_id", "loser_id", "tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "w_svpt", "l_svpt")
 
 # Create a new dataframe with selected features
 t5 <- all_matches %>% select(features)
 t5 <- na.omit(t5)
 
-# Convert categorical variables to factors (if needed)
+# Convert categorical variables to factors
 t5$winner_hand <- as.factor(t5$winner_hand)
 t5$loser_hand <- as.factor(t5$loser_hand)
 
@@ -154,3 +152,78 @@ predictions <- predict(lm_model, newdata = test_data)
 # Evaluate the model
 rmse <- sqrt(mean((test_data$total_aces - predictions)^2))
 print(paste("Root Mean Squared Error:", rmse))
+
+
+
+# Task 5.3 Most likely solution
+features <- c("tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "winner_id", "loser_id",
+              "w_svpt", "l_svpt", "w_df", "l_df")
+
+# Create a new dataframe with selected features
+t5 <- all_matches %>% select(features)
+t5 <- na.omit(t5)
+
+# Convert categorical variables to factors (if needed)
+t5$winner_hand <- as.factor(t5$winner_hand)
+t5$loser_hand <- as.factor(t5$loser_hand)
+
+# Extract the year from the tourney_id
+t5$year <- as.numeric(substring(t5$tourney_id, 1, regexpr("-", t5$tourney_id)-1))
+
+# Aggregate features by player and year, considering both winner and loser information
+winner_aggregated_data <- t5 %>%
+  group_by(player_id = winner_id, year, winner_ht, winner_hand) %>%
+  summarize(
+    total_aces = sum(w_ace),
+    avg_1stIn = mean(w_1stIn),
+    avg_1stWon = mean(w_1stWon),
+    svpt = mean(w_svpt),
+    df = sum(w_df)
+  )
+
+loser_aggregated_data <- t5 %>%
+  group_by(player_id = loser_id, year, loser_ht, loser_hand) %>%
+  summarize(
+    total_aces = sum(l_ace),
+    avg_1stIn = mean(l_1stIn),
+    avg_1stWon = mean(l_1stWon),
+    svpt = mean(l_svpt),
+    df = sum(l_df)
+  )
+
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_ht"] <- "height"
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_hand"] <- "hand"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_ht"] <- "height"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_hand"] <- "hand"
+
+
+print(winner_aggregated_data)
+print(loser_aggregated_data)
+
+wl_aggregated_data <- rbind(winner_aggregated_data, loser_aggregated_data)
+print(n=40, wl_aggregated_data[wl_aggregated_data$player_id == 104925, ])
+
+aggregated_data <- wl_aggregated_data %>%
+  group_by(player_id, year, height, hand) %>%
+  summarize(
+    total_aces = sum(total_aces),
+    avg_1stIn = mean(avg_1stIn),
+    avg_1stWon = mean(avg_1stWon),
+    svpt = mean(svpt),
+    df = sum(df)
+  )
+
+djokovic <- aggregated_data[aggregated_data$player_id == 104925, ]
+print(n = 20, djokovic)
+djokovic$aces_in_following_year <- lead(djokovic$total_aces)
+print(n = 20, djokovic)
+
+djokovic_2023 <- tail(djokovic, 4)
+djokovic <- head(djokovic, -3)
+
+model <- lm(aces_in_following_year ~ avg_1stIn + avg_1stWon + svpt + df + total_aces, data = djokovic)
+# TODO remove hand and height
+
+# Make predictions on the entire dataset
+predictions <- predict(model, newdata = djokovic_2023)
+print(predictions)
