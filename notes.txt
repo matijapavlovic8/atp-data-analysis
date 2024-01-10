@@ -13,3 +13,7 @@ Treća točka ANOVA
 Peta točka linearna regresija, po želji (sami biramo stupce, uzeti značajke koji opisuju igrača)
 
 Poslat će nam opis stupaca
+
+-------------------------------------------------------------------------------------
+
+Treba li kod linearne regresije normalizirat podatke?

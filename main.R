@@ -1,10 +1,12 @@
 # install.packages("dplyr")
 # install.packages("lubridate")
 # install.packages("ggplot2")
+# install.packages("caret")
 
 library(dplyr)
 library(lubridate)
 library(ggplot2)
+library(caret)
 
 # Load data
 all_matches <- data.frame()
@@ -99,6 +101,56 @@ chi_square_result <- chisq.test(contingency_table)
 print(chi_square_result)
 
 # Task 5
-t5_w <- all_matches %>%
-  filter(!is.na(winner_id) & !is.na(winner_ht) & !is.na(winner_age) & !is.na(w_ace) & w_ace != "" & l_ace != "" & surface != "")
-t5_w <- select(t5_w, winner_id, winner_ht, winner_age, w_ace)
+features <- c("tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "winner_seed", "loser_seed", "winner_id", "loser_id")
+
+# Create a new dataframe with selected features
+t5 <- all_matches %>% select(features)
+t5 <- na.omit(t5)
+
+# Convert categorical variables to factors (if needed)
+t5$winner_hand <- as.factor(t5$winner_hand)
+t5$loser_hand <- as.factor(t5$loser_hand)
+
+# Extract the year from the tourney_id
+t5$year <- as.numeric(substring(t5$tourney_id, 1, regexpr("-", t5$tourney_id)-1))
+
+# Create a new column for the target variable (sum of aces in the following year)
+t5$aces_in_following_year <- NA
+
+# Aggregate features by player and year
+aggregated_data <- t5 %>%
+  group_by(player_id = ifelse(!is.na(winner_id), winner_id, loser_id), year) %>%
+  summarize(
+    total_aces = sum(w_ace + l_ace, na.rm = TRUE),
+    avg_w_1stIn = mean(w_1stIn, na.rm = TRUE),
+    avg_l_1stIn = mean(l_1stIn, na.rm = TRUE),
+    avg_w_1stWon = mean(w_1stWon, na.rm = TRUE),
+    avg_l_1stWon = mean(l_1stWon, na.rm = TRUE),
+    winner_ht = mean(winner_ht, na.rm = TRUE),
+    loser_ht = mean(loser_ht, na.rm = TRUE),
+    winner_hand = names(sort(table(winner_hand), decreasing = TRUE))[1],
+    loser_hand = names(sort(table(loser_hand), decreasing = TRUE))[1],
+    winner_seed = mean(winner_seed, na.rm = TRUE),
+    loser_seed = mean(loser_seed, na.rm = TRUE)
+  )
+
+print(aggregated_data[aggregated_data$player_id == 104925, ])
+
+# Drop rows with NA in the target variable column
+aggregated_data <- aggregated_data[complete.cases(aggregated_data$total_aces), ]
+
+# Split the data into training and testing sets
+set.seed(123)  # for reproducibility
+train_indices <- createDataPartition(aggregated_data$total_aces, p = 0.8, list = FALSE)
+train_data <- aggregated_data[train_indices, ]
+test_data <- aggregated_data[-train_indices, ]
+
+# Train the linear regression model
+lm_model <- lm(total_aces ~ ., data = train_data)
+
+# Make predictions on the test set
+predictions <- predict(lm_model, newdata = test_data)
+
+# Evaluate the model
+rmse <- sqrt(mean((test_data$total_aces - predictions)^2))
+print(paste("Root Mean Squared Error:", rmse))
