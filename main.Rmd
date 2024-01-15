@@ -97,3 +97,146 @@ ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
 ```
 
 TODO Opisat histogram, šta prikazuje
+
+
+## Zadatak 2. Postoji li značajna razlika u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom u odnosu na mečeve odigrane na zatvorenom terenu?
+
+```{r echo=FALSE}
+t2 <- all_matches %>%
+  filter(!is.na(w_df) & !is.na(l_df) & !is.na(surface) & w_df != "" & l_df != "" & surface != "")
+t2 <- select(t2, w_df, l_df, surface)
+t2$court_type <- ifelse(t2$surface %in% c("Clay", "Grass", "Hard"), "Outdoor", "Indoor")
+
+t2 <- t2 %>%
+  mutate(df = w_df + l_df)
+
+open_surface_data <- t2$df[t2$court_type == 'Outdoor']
+closed_surface_data <- t2$df[t2$court_type == 'Indoor']
+
+t_test_result <- t.test(open_surface_data, closed_surface_data)
+
+print(t_test_result)
+```
+
+TODO Opis ispisa 
+
+
+## Zadatak 3. Ima li razlike u broju serviranih asova na različitim podlogama?	
+
+```{r echo=FALSE}
+t3 <- all_matches %>%
+  filter(!is.na(w_ace) & !is.na(l_ace) & !is.na(surface) & w_ace != "" & l_ace != "" & surface != "")
+t3 <- select(t3, surface, w_ace, l_ace)
+t3 <- t3 %>%
+  mutate(aces = w_ace + l_ace)
+
+aov_res <- aov(aces~surface, data=t3)
+print(summary(aov_res))
+```
+
+TODO Opis ispisa
+
+
+## Zadatak 4. Kakva je veza između vrste terena i vjerojatnosti da će mečevi otići u peti set?
+
+```{r echo=FALSE}
+t4 <- all_matches[all_matches$best_of == 5, ]
+t4$sets_played <- sapply(strsplit(as.character(t4$score), ""), function(x) sum(x == "-"))
+
+contingency_table <- table(t4$surface, t4$sets_played == 5)
+print(contingency_table)
+```
+
+TODO Opis ispisa
+
+```{r echo=FALSE}
+chi_square_result <- chisq.test(contingency_table)
+print(chi_square_result)
+```
+
+TODO Opis ispisa
+
+
+## Zadatak 5. Možemo li procijeniti broj asova koje će igrač odservirati u tekućoj godini (zadnjoj dostupnoj sezoni) na temelju njegovih rezultata iz prethodnih sezona?	
+
+```{r echo=FALSE}
+features <- c("tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "winner_id", "loser_id",
+              "w_svpt", "l_svpt", "w_df", "l_df")
+
+# Create a new dataframe with selected features
+t5 <- all_matches %>% select(features)
+t5 <- na.omit(t5)
+
+# Convert categorical variables to factors (if needed)
+t5$winner_hand <- as.factor(t5$winner_hand)
+t5$loser_hand <- as.factor(t5$loser_hand)
+
+# Extract the year from the tourney_id
+t5$year <- as.numeric(substring(t5$tourney_id, 1, regexpr("-", t5$tourney_id)-1))
+
+# Aggregate features by player and year, considering both winner and loser information
+winner_aggregated_data <- t5 %>%
+  group_by(player_id = winner_id, year, winner_ht, winner_hand) %>%
+  summarize(
+    total_aces = sum(w_ace),
+    avg_1stIn = mean(w_1stIn),
+    avg_1stWon = mean(w_1stWon),
+    svpt = mean(w_svpt),
+    df = sum(w_df)
+  )
+
+loser_aggregated_data <- t5 %>%
+  group_by(player_id = loser_id, year, loser_ht, loser_hand) %>%
+  summarize(
+    total_aces = sum(l_ace),
+    avg_1stIn = mean(l_1stIn),
+    avg_1stWon = mean(l_1stWon),
+    svpt = mean(l_svpt),
+    df = sum(l_df)
+  )
+
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_ht"] <- "height"
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_hand"] <- "hand"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_ht"] <- "height"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_hand"] <- "hand"
+
+
+print(winner_aggregated_data)
+print(loser_aggregated_data)
+
+wl_aggregated_data <- rbind(winner_aggregated_data, loser_aggregated_data)
+print(n=40, wl_aggregated_data[wl_aggregated_data$player_id == 104925, ])
+
+aggregated_data <- wl_aggregated_data %>%
+  group_by(player_id, year, height, hand) %>%
+  summarize(
+    total_aces = sum(total_aces),
+    avg_1stIn = mean(avg_1stIn),
+    avg_1stWon = mean(avg_1stWon),
+    svpt = mean(svpt),
+    df = sum(df)
+  )
+
+djokovic <- aggregated_data[aggregated_data$player_id == 104925, ]
+print(n = 20, djokovic)
+djokovic$aces_in_following_year <- lead(djokovic$total_aces)
+print(n = 20, djokovic)
+
+djokovic_2023 <- tail(djokovic, 4)
+djokovic <- head(djokovic, -3)
+
+model <- lm(aces_in_following_year ~ avg_1stIn + avg_1stWon + svpt + df + total_aces, data = djokovic)
+# TODO remove hand and height
+
+# Make predictions on the entire dataset
+predictions <- predict(model, newdata = djokovic_2023)
+print(predictions)
+```
+
+
+
+
+
+
+
+
