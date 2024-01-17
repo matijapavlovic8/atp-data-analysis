@@ -1,0 +1,19 @@
+Koristimo podatke 1991. - 2023.
+
+Ne moramo normalizirat podatke za aseve, ali možemo kasnije provjerit jel odstupa mean za grand slamove vs non grand slam
+
+Prva točka 9, 10, 11 jesen, 12, 1, 2 zima ...
+
+Druga točka t-test (dvostruke pogreške...)
+
+Treća točka ANOVA
+
+Četvrta točka HI-kvadrat, kontingencijska tablica
+
+Peta točka linearna regresija, po želji (sami biramo stupce, uzeti značajke koji opisuju igrača)
+
+Poslat će nam opis stupaca
+
+-------------------------------------------------------------------------------------
+
+Treba li kod linearne regresije normalizirat podatke?

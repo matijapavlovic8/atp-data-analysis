@@ -1,0 +1,353 @@
+---
+title: "ATP Data Analysis"
+authors: Matija Pavlović, Barbara Pašalić, Jelena Kulišić, Marko Miljković
+date: "2024-01-10"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Instalacija potrebnih paketa.
+
+```{r}
+# install.packages("dplyr")
+# install.packages("lubridate")
+# install.packages("ggplot2")
+# install.packages("caret")
+```
+
+Učitavanje biblioteka.
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(caret)
+library(nortest)
+```
+
+Učitavanje i opis podataka
+
+```{r}
+all_matches <- data.frame()
+for (year in 1991:2023) {
+  file_name <- paste0("dataset/atp_matches_", year, ".csv")
+  matches_year <- read.csv(file_name, stringsAsFactors = FALSE)
+  all_matches <- rbind(all_matches, matches_year)
+}
+
+print(head(all_matches))
+```
+
+TODO Opis ispisa
+
+```{r}
+print(names(all_matches))
+```
+
+TODO Opis ispisa
+
+```{r}
+print(summary(all_matches))
+```
+
+TODO Opis ispisa, možda uzet summary samo za neke značajke
+
+## Zadatak 1. Kakva je distribucija mečeva na specifičnim podlogama u različitim godišnjim dobima?
+
+```{r echo=FALSE}
+t1 <- all_matches %>%
+  filter(!is.na(surface) & !is.na(tourney_date) & surface != "")
+
+t1 <- select(t1, surface, tourney_date)
+
+t1$tourney_date <- as.Date(as.character(t1$tourney_date), format = "%Y%m%d", origin = "1970-01-01")
+t1$month <- month(t1$tourney_date)
+t1$season <- case_when(
+  t1$month %in% c(3, 4, 5) ~ "Spring",
+  t1$month %in% c(6, 7, 8) ~ "Summer",
+  t1$month %in% c(9, 10, 11) ~ "Fall",
+  t1$month %in% c(12, 1, 2) ~ "Winter",
+  TRUE ~ "Unknown"
+)
+
+surface_counts <- table(t1$season, t1$surface)
+surface_counts_df <- as.data.frame(surface_counts)
+names(surface_counts_df) <- c("Season", "Surface", "Frequency")
+
+ggplot(t1, aes(x = season, fill = factor(season))) +
+  geom_bar() +
+  facet_wrap(~ surface, scales = "free") +
+  labs(title = "Season Frequencies for Each Surface", x = "Season", y = "Frequency") +
+  theme_minimal()
+```
+
+TODO Opisat histogram, šta prikazuje
+
+```{r echo=FALSE}
+ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Season, scales = "free") +
+  labs(title = "Surface Frequencies for Each Season", x = "Surface", y = "Frequency") +
+  theme_minimal()
+```
+
+TODO Opisat histogram, šta prikazuje
+
+
+## Zadatak 2. Postoji li značajna razlika u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom u odnosu na mečeve odigrane na zatvorenom terenu?
+
+```{r echo=FALSE}
+
+# TODO Provjerit normalnost
+# Provjeirt homogenost varijance
+# Sukladno tome odabrat t test
+
+t2 <- all_matches %>%
+  filter(!is.na(w_df) & !is.na(l_df) & !is.na(surface) & w_df != "" & l_df != "" & surface != "")
+t2 <- select(t2, w_df, l_df, surface)
+t2$court_type <- ifelse(t2$surface %in% c("Clay", "Grass", "Hard"), "Outdoor", "Indoor")
+
+t2 <- t2 %>%
+  mutate(df = w_df + l_df)
+
+open_surface_data <- t2$df[t2$court_type == 'Outdoor']
+closed_surface_data <- t2$df[t2$court_type == 'Indoor']
+
+min_length <- min(length(open_surface_data), length(closed_surface_data))
+df <- data.frame(
+        court_type = rep(c("Outdoor", "Indoor"), each = min_length),
+        df = c(open_surface_data[1:min_length], closed_surface_data[1:min_length])
+)
+
+# Create box plots
+ggplot(df, aes(x = court_type, y = df)) +
+        geom_boxplot(fill = "lightblue", color = "blue") +
+        labs(title = "Comparison of Outdoor and Indoor Court Types",
+             x = "Court Type",
+             y = "Total DataFrame") +
+        theme_minimal()
+
+open_surface_data <- t2$df[t2$court_type == 'Outdoor']
+closed_surface_data <- t2$df[t2$court_type == 'Indoor']
+qqnorm(open_surface_data)
+qqline(open_surface_data, col = "red", lwd = 2)
+
+# Repeat for closed_surface_data
+qqnorm(closed_surface_data)
+qqline(closed_surface_data, col = "blue", lwd = 2)
+
+# Perform Lilliefors test
+lillie_test_outdoor <- lillie.test(open_surface_data)
+lillie_test_indoor <- lillie.test(closed_surface_data)
+
+# Print results
+print(lillie_test_outdoor)
+print(lillie_test_indoor)
+
+var_test_result <- var.test(open_surface_data, closed_surface_data)
+print(var_test_result)
+t_test_result <- t.test(open_surface_data, closed_surface_data, var.equal = TRUE)
+print(wilcox.test(open_surface_data, closed_surface_data))
+print(t_test_result)
+```
+
+TODO Opis ispisa 
+
+
+## Zadatak 3. Ima li razlike u broju serviranih asova na različitim podlogama?	
+
+```{r}
+# Provjera homogenosti i normalnosti (Bartletov test)
+# Vizualizacija po grupama Lili
+# Kruskal Wallis
+
+t3 <- all_matches %>%
+  filter(!is.na(w_ace) & !is.na(l_ace) & !is.na(surface) & w_ace != "" & l_ace != "" & surface != "")
+t3 <- select(t3, surface, w_ace, l_ace)
+t3 <- t3 %>%
+  mutate(aces = w_ace + l_ace)
+
+hist(t3$aces[t3$surface=='Hard'])
+hist(t3$aces[t3$surface=='Carpet'])
+hist(t3$aces[t3$surface=='Clay'])
+hist(t3$aces[t3$surface=='Grass'])
+
+require(nortest)
+print(lillie.test(t3$aces[t3$surface=='Hard']))
+print(lillie.test(t3$aces[t3$surface=='Carpet']))
+print(lillie.test(t3$aces[t3$surface=='Clay']))
+print(lillie.test(t3$aces[t3$surface=='Grass']))
+
+bartlett.test(t3$aces ~ t3$surface)
+
+var((t3$aces[t3$surface=='Hard']))
+var((t3$aces[t3$surface=='Carpet']))
+var((t3$aces[t3$surface=='Clay']))
+var((t3$aces[t3$surface=='Grass']))
+
+boxplot(t3$aces ~ t3$surface)
+
+aov_res <- aov(aces~surface, data=t3)
+print(summary(aov_res))
+
+kruskal.test(aces~surface, data=t3)
+```
+
+TODO Opis ispisa
+
+
+## Zadatak 4. Kakva je veza između vrste terena i vjerojatnosti da će mečevi otići u peti set?
+
+```{r echo=FALSE}
+# Ispitat pretpostavke
+# Fisher alternativa, broj vrijednosti u talici
+
+t4 <- all_matches[all_matches$best_of == 5, ]
+t4$sets_played <- sapply(strsplit(as.character(t4$score), ""), function(x) sum(x == "-"))
+
+contingency_table <- table(t4$surface, t4$sets_played == 5)
+print(contingency_table)
+```
+
+TODO Opis ispisa
+
+Kontingencijskoj tablici dodajemo sume redaka i stupaca: 
+
+```{r echo=FALSE}
+contingency_with_sum = addmargins(contingency_table)
+print(contingency_with_sum)
+```
+
+TODO Opis ispisa
+
+Pretpostavka testa je da očekivana frekvencija pojedinog razreda mora biti veća ili jednaka 5 (`chisq.test()` pretpostavlja da je ovaj uvjet zadovoljen stoga je prije provođenja testa potrebno to provjeriti): 
+
+```{r echo=FALSE}
+for (col_names in colnames(contingency_with_sum)){
+  for (row_names in rownames(contingency_with_sum)){
+    if (!(row_names == 'Sum' | col_names == 'Sum') ){
+      cat('Očekivane frekvencije za razred ',col_names,'-',row_names,': ',(contingency_with_sum[row_names,'Sum'] * contingency_with_sum['Sum',col_names]) / contingency_with_sum['Sum','Sum'],'\n')
+    }
+  }
+}
+```
+
+Sve očekivane frekvencije su veće od 5, nastavljamo sa $\chi^2$ testom.
+
+```{r echo=FALSE}
+chi_square_result <- chisq.test(contingency_table)
+print(chi_square_result)
+```
+
+TODO Opis ispisa
+
+```{r echo=FALSE}
+real_counts <- contingency_table
+expected_counts <- chi_square_result$expected
+
+var_test <- var.test(real_counts, expected_counts)
+print(var_test)
+```
+
+TODO Opis ispisa
+
+
+## Zadatak 5. Možemo li procijeniti broj asova koje će igrač odservirati u tekućoj godini (zadnjoj dostupnoj sezoni) na temelju njegovih rezultata iz prethodnih sezona?	
+
+```{r echo=FALSE}
+# Model mora uzet u obzir sve igrace
+# Ranking igraca kao feature
+# Mse odstupanje
+# Testirat vise podskupa featurea
+# Standardizacija podataka
+# Na razini sezone
+# Auditorne !!!
+
+# OPTIONAL: Jednim pitanjem pokrit gradivo dosadasnja pitanja nisu
+
+features <- c("tourney_id", "w_ace", "l_ace", "w_1stIn", "l_1stIn", "w_1stWon", "l_1stWon", "winner_ht", "loser_ht", "winner_hand", "loser_hand", "winner_id", "loser_id",
+              "w_svpt", "l_svpt", "w_df", "l_df")
+
+# Create a new dataframe with selected features
+t5 <- all_matches %>% select(features)
+t5 <- na.omit(t5)
+
+# Convert categorical variables to factors (if needed)
+t5$winner_hand <- as.factor(t5$winner_hand)
+t5$loser_hand <- as.factor(t5$loser_hand)
+
+# Extract the year from the tourney_id
+t5$year <- as.numeric(substring(t5$tourney_id, 1, regexpr("-", t5$tourney_id)-1))
+
+# Aggregate features by player and year, considering both winner and loser information
+winner_aggregated_data <- t5 %>%
+  group_by(player_id = winner_id, year, winner_ht, winner_hand) %>%
+  summarize(
+    total_aces = sum(w_ace),
+    avg_1stIn = mean(w_1stIn),
+    avg_1stWon = mean(w_1stWon),
+    svpt = mean(w_svpt),
+    df = sum(w_df)
+  )
+
+loser_aggregated_data <- t5 %>%
+  group_by(player_id = loser_id, year, loser_ht, loser_hand) %>%
+  summarize(
+    total_aces = sum(l_ace),
+    avg_1stIn = mean(l_1stIn),
+    avg_1stWon = mean(l_1stWon),
+    svpt = mean(l_svpt),
+    df = sum(l_df)
+  )
+
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_ht"] <- "height"
+colnames(winner_aggregated_data)[colnames(winner_aggregated_data) == "winner_hand"] <- "hand"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_ht"] <- "height"
+colnames(loser_aggregated_data)[colnames(loser_aggregated_data) == "loser_hand"] <- "hand"
+
+
+print(winner_aggregated_data)
+print(loser_aggregated_data)
+
+wl_aggregated_data <- rbind(winner_aggregated_data, loser_aggregated_data)
+print(n=40, wl_aggregated_data[wl_aggregated_data$player_id == 104925, ])
+
+aggregated_data <- wl_aggregated_data %>%
+  group_by(player_id, year, height, hand) %>%
+  summarize(
+    total_aces = sum(total_aces),
+    avg_1stIn = mean(avg_1stIn),
+    avg_1stWon = mean(avg_1stWon),
+    svpt = mean(svpt),
+    df = sum(df)
+  )
+
+djokovic <- aggregated_data[aggregated_data$player_id == 104925, ]
+print(n = 20, djokovic)
+djokovic$aces_in_following_year <- lead(djokovic$total_aces)
+print(n = 20, djokovic)
+
+djokovic_2023 <- tail(djokovic, 4)
+djokovic <- head(djokovic, -3)
+
+model <- lm(aces_in_following_year ~ avg_1stIn + avg_1stWon + svpt + df + total_aces, data = djokovic)
+# TODO remove hand and height
+
+# Make predictions on the entire dataset
+predictions <- predict(model, newdata = djokovic_2023)
+print(predictions)
+```
+
+
+
+
+
+
+
+
