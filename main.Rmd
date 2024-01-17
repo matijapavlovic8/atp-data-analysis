@@ -217,9 +217,42 @@ print(contingency_table)
 
 TODO Opis ispisa
 
+Kontingencijskoj tablici dodajemo sume redaka i stupaca: 
+
+```{r echo=FALSE}
+contingency_with_sum = addmargins(contingency_table)
+print(contingency_with_sum)
+```
+
+TODO Opis ispisa
+
+Pretpostavka testa je da očekivana frekvencija pojedinog razreda mora biti veća ili jednaka 5 (`chisq.test()` pretpostavlja da je ovaj uvjet zadovoljen stoga je prije provođenja testa potrebno to provjeriti): 
+
+```{r echo=FALSE}
+for (col_names in colnames(contingency_with_sum)){
+  for (row_names in rownames(contingency_with_sum)){
+    if (!(row_names == 'Sum' | col_names == 'Sum') ){
+      cat('Očekivane frekvencije za razred ',col_names,'-',row_names,': ',(contingency_with_sum[row_names,'Sum'] * contingency_with_sum['Sum',col_names]) / contingency_with_sum['Sum','Sum'],'\n')
+    }
+  }
+}
+```
+
+Sve očekivane frekvencije su veće od 5, nastavljamo sa $\chi^2$ testom.
+
 ```{r echo=FALSE}
 chi_square_result <- chisq.test(contingency_table)
 print(chi_square_result)
+```
+
+TODO Opis ispisa
+
+```{r echo=FALSE}
+real_counts <- contingency_table
+expected_counts <- chi_square_result$expected
+
+var_test <- var.test(real_counts, expected_counts)
+print(var_test)
 ```
 
 TODO Opis ispisa
