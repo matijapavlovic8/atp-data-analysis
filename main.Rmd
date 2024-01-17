@@ -247,16 +247,6 @@ print(chi_square_result)
 
 TODO Opis ispisa
 
-```{r echo=FALSE}
-real_counts <- contingency_table
-expected_counts <- chi_square_result$expected
-
-var_test <- var.test(real_counts, expected_counts)
-print(var_test)
-```
-
-TODO Opis ispisa
-
 
 ## Zadatak 5. Možemo li procijeniti broj asova koje će igrač odservirati u tekućoj godini (zadnjoj dostupnoj sezoni) na temelju njegovih rezultata iz prethodnih sezona?	
 
