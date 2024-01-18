@@ -49,10 +49,6 @@ Skup podataka sadrži informacije o 104682 teniska meča održana od 1991. do 20
 names(all_matches)
 ```
 
-```{r}
-print(summary(all_matches))
-```
-
 TODO Opis ispisa, možda uzet summary samo za neke značajke
 
 ## Zadatak 1. Kakva je distribucija mečeva na specifičnim podlogama u različitim godišnjim dobima?
@@ -110,14 +106,9 @@ Zadnji histogram opisuje raspodjelu mečeva prema podlogama zimi. Tijekom zime p
 
 
 ## Zadatak 2. Postoji li značajna razlika u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom u odnosu na mečeve odigrane na zatvorenom terenu?
-
-Na početku provjeravamo normalnost podataka, najprije pomoću boxplot i Q-Q grafova.
+Prvo provjeravamo ukazuje li boxplot za moguću značajnu razliku.
 
 ```{r echo=FALSE}
-
-# TODO Provjerit normalnost
-# Provjeirt homogenost varijance
-# Sukladno tome odabrat t test
 
 t2 <- all_matches %>%
   filter(!is.na(w_df) & !is.na(l_df) & !is.na(surface) & w_df != "" & l_df != "" & surface != "")
@@ -143,7 +134,13 @@ ggplot(df, aes(x = court_type, y = df)) +
              x = "Court Type",
              y = "Total DataFrame") +
         theme_minimal()
+```
+Grafički prikaz ukazuje na moguću razliku između prosječnog broja dvostrukih pogrešaka između mečeva
+odigranih na otvorenom i zatvorenom. 
+Kako bismo provjerili možemo li prihvatiti nultu hipotezu koja pretpostavlja da nema razlike, provest ćemo t-test.
+Najprije moramo provjeriti pretpostavke o normalnoj distribuciji i homogenosti varijanci. Normalnu distribuciju prvo provjeravamo pomoću qq-plota, a zatim i Lilliefors testom.
 
+```{r echo=FALSE}
 open_surface_data <- t2$df[t2$court_type == 'Outdoor']
 closed_surface_data <- t2$df[t2$court_type == 'Indoor']
 qqnorm(open_surface_data)
@@ -153,7 +150,7 @@ qqline(open_surface_data, col = "red", lwd = 2)
 qqnorm(closed_surface_data)
 qqline(closed_surface_data, col = "blue", lwd = 2)
 ```
-
+Iz qq-plota vidljivo je da distribucije nisu normalne niti za mečeve na otvorenom niti na zatvorenom jer postoji značajno odstupanje repa.
 Zatim provodimo Lilliefors test: 
 
 ```{r echo=FALSE}
@@ -168,76 +165,89 @@ print(lillie_test_indoor)
 
 Za oba skupa podataka (otvoreni teren i zatvoreni teren), rezultati testova normalnosti (Lilliefors test) pokazuju da podaci nisu normalno distribuirani (p-vrijednosti su manje od 0.05) što se moglo zaključiti i iz grafova. To znači da distribucija podataka odstupa od normalne distribucije.
 
-Onda provodimo F-test za provjeru homogenosti varijanci: 
+Provedimo F-test za provjeru homogenosti varijanci: 
 
 ```{r echo=FALSE}
 var_test_result <- var.test(open_surface_data, closed_surface_data)
 print(var_test_result)
 ```
 
-F-test za usporedbu varijanci pokazuje da nema značajne razlike u varijancama između otvorenog terena i zatvorenog terena (p-vrijednost = 4.316e-12). Ovaj rezultat ukazuje na homogenost varijanci između ova dva skupa podataka.
-
-Nakon toga provodimo Wilcoxon rang-sum test:
+F-test za usporedbu varijanci pokazuje da postoji značajna razlika u varijancama između otvorenog terena i zatvorenog terena (p-vrijednost < 0.05).
+Kako pretpostavke za t-test nisu zadovoljene koristimo Wilcoxonov test:
 
 ```{r echo=FALSE}
 print(wilcox.test(open_surface_data, closed_surface_data))
 ```
 
-Wilcoxon rang-sum test ne pokazuje značajnu razliku u srednjim vrijednostima (medijanama) između otvorenog i zatvorenog terena (p-vrijednost = 0.3191).
-
-Na kraju provodimo t-test za uparene uzorke: 
-
-```{r echo=FALSE}
-t_test_result <- t.test(open_surface_data, closed_surface_data, var.equal = TRUE)
-print(t_test_result)
-```
-
-Two Sample t-test također ne pokazuje značajnu razliku između srednjih vrijednosti otvorenog terena i zatvorenog terena (p-vrijednost = 0.4122). 95% interval pouzdanosti za razliku u srednjim vrijednostima uključuje nulu, što dodatno potvrđuje nedostatak značajne razlike.
+Wilcoxon rang-sum test ne pokazuje značajnu razliku u srednjim vrijednostima (medijanama) između otvorenog i zatvorenog terena (p-vrijednost = 0.3191, dakle ne možemo odbaciti nultu hipotezu).
 
 Na temelju ovih rezultata, možemo zaključiti da nema značajne razlike u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom terenu i mečeva odigranih na zatvorenom terenu.
 
 
 ## Zadatak 3. Ima li razlike u broju serviranih asova na različitim podlogama?	
 
-```{r}
-# Provjera homogenosti i normalnosti (Bartletov test)
-# Vizualizacija po grupama Lili
-# Kruskal Wallis
+Provjerimo za početak postoje li lako uočljive razlike u broju serviranih asova na različitim podlogama pomoću grafičkog prikaza.
 
+```{r echo=FALSE}
 t3 <- all_matches %>%
   filter(!is.na(w_ace) & !is.na(l_ace) & !is.na(surface) & w_ace != "" & l_ace != "" & surface != "")
 t3 <- select(t3, surface, w_ace, l_ace)
 t3 <- t3 %>%
   mutate(aces = w_ace + l_ace)
 
+
+boxplot(aces ~ surface, data = t3, 
+        xlab = "Surface", ylab = "Number of Served Aces",
+        main = "Boxplot of Served Aces by Surface")
+```
+Boxplot ukazuje na to da postoje razlike u broju asova s obzirom na podlogu. 
+
+Nulta hipoteza jest da nema razlike u broju serviranih asova na različitim podlogama. Može li se odbaciti ista provjerit ćemo ANOVA testom. ANOVA analizira razliku srednje vrijednosti između više od dvije grupe.
+Kako bi taj test mogao biti korišten najprije moramo provjeriti pretpostavke:
+
+1. provjera normalne distribucije
+
+```{r echo=FALSE}
 par(mfrow = c(2, 2))
 for (surface in unique(t3$surface)){
 hist(t3$aces[t3$surface==surface],
-main = paste("Histogram of served aces on" , surface))
+main = paste("Histogram of served aces on" , surface),
+xlab = "Number of Served Aces",
+ylab = "Frequency")
 }
+```
+Histogrami ukazuju na to da distrubucija serviranih asova nije normalna niti na jednoj od podloga.
+Normalna distribucija još se provjerava i Lilliefors testom:
 
+```{r echo=FALSE}
 require(nortest)
 print(lillie.test(t3$aces[t3$surface=='Hard']))
 print(lillie.test(t3$aces[t3$surface=='Carpet']))
 print(lillie.test(t3$aces[t3$surface=='Clay']))
 print(lillie.test(t3$aces[t3$surface=='Grass']))
+```
+Za svaku od 4 podloge p-vrijednost je manja od 0.05 zbog čega odbacujemo pretpostavku da je distribucija normalna.
 
+2. provjera homogenosti varijanci
+Homogenost varijanci provjerava se Bartletttovim testom:
+```{r echo=FALSE}
 bartlett.test(t3$aces ~ t3$surface)
 
+```
+P-vrijednost u Bartlettovom testu manja je od kritične vrijednosti od 0.05 čime se zaključuje da homogenost varijanci nije zadovoljena.
+
+Isto se vidi i u ispisu varijance za svaku od podloga.
+```{r echo=FALSE}
 var((t3$aces[t3$surface=='Hard']))
 var((t3$aces[t3$surface=='Carpet']))
 var((t3$aces[t3$surface=='Clay']))
 var((t3$aces[t3$surface=='Grass']))
-
-boxplot(t3$aces ~ t3$surface)
-
-aov_res <- aov(aces~surface, data=t3)
-print(summary(aov_res))
-
+```
+Kako niti jedna od pretpostavki nije zadovoljena koristit ćemo Kruskal-Wallis, neparametarsku alternativu ANOVA testu.
+```{r echo=FALSE}
 kruskal.test(aces~surface, data=t3)
 ```
-
-TODO Opis ispisa
+Nakon provedenog testa dobivamo p-vrijednost manju od 0.05 što znači da možemo odbaciti nultu hipotezu u korist prve, odnosno da postoji razlika u broj serviranih asova u odnosu na podlogu, što intuitivno ima smisla jer loptica ne odskače jednako od svih podloga.
 
 
 ## Zadatak 4. Kakva je veza između vrste terena i vjerojatnosti da će mečevi otići u peti set?
