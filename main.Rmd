@@ -84,13 +84,13 @@ ggplot(t1, aes(x = season, fill = factor(season))) +
   theme_minimal()
 ```
 
-Prvi histogram prikazuje raspodjelu mečeva prema podlogama u jesen. Uvjerljivo najviše mečeva u jesen održava se na tvrdoj podlozi. Dosta manje mečeva igra se na podlozi od tepiha, a nešto malo manje na zemlji. Najmanje mečeva u jesenskom dijelu sezone igra se na travi. 
+U prvom histogramu prikazana je raspodjela teniskih mečeva prema godišnjim dobima na podlozi od tepiha. Podloga od tepiha najmanje je korištena podloga za igranje mečeva. Najčešće se podloga od tepiha koristila u jesen, dosta rjeđe zimi, zatim na proljeće, a najmanje se mečeva na podlozi od tepiha igra na ljeto. 
 
-Idući histogram prikazuje raspodjelu mečeva prema podlogama u proljeće. U proljetnom dijelu sezone uvjerljivo najviše teniskih mečeva igra se na podlozi od zemlje. Više od dvostruko manje mečeva održava se na tvrdoj podlozi. Jako malo mečeva održava se na podlozi od tepiha, a još manje na travi. 
+Sljedeći histogram predstavlja raspodjelu mečeva prema godišnjim dobima na zemljanoj podlozi. Mečevi na zemlji najčešće se igraju u proljetnom dijelu sezone. Dosta manje mečeva igra se na ljeto zatim otprilike podjednako na jesen i zimi. 
 
-U trećem histogramu promatramo raspodjelu mečeva prema podlogama tijekom ljeta. Najviše mečeva održava se na tvrdoj podlozi, zatim na travi pa na podlozi od zemlje. Svega nekoliko mečeva igra se na podlozi od tepiha. 
+Treći histogram opisuje distribuciju teniskih mečeva prema godišnjim dobima na travi. Teniski mečevi na travi igraju se uglavnom ljeti, a svega nekoliko mečeva igra se u preostalim godišnjim dobima. 
 
-Zadnji histogram opisuje raspodjelu mečeva prema podlogama zimi. Tijekom zime prednjače mečevi na tvrdoj podlozi. Dosta manje mečeva igra se na zemlji, zatim na podlozi od tepiha te najmanje na travi.
+U posljednjem histogramu promatrana je raspodjela mečeva prema godišnjim dobima na tvrdoj podlozi. Sveukupno najviše mečeva igra se na tvrdoj podlozi te je raspodjela prema godišnjim dobima manje izražena nego kod drugih podloga. Najviše mečeva na tvrdoj podlozi održava se zimi, zatim u ljeto pa na jesen te najmanje u proljetnom dijelu sezone.
 
 ```{r echo=FALSE}
 ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
@@ -100,10 +100,18 @@ ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
   theme_minimal()
 ```
 
-TODO Opisat histogram, šta prikazuje
+Prvi histogram prikazuje raspodjelu mečeva prema podlogama u jesen. Uvjerljivo najviše mečeva u jesen održava se na tvrdoj podlozi. Dosta manje mečeva igra se na podlozi od tepiha, a nešto malo manje na zemlji. Najmanje mečeva u jesenskom dijelu sezone igra se na travi. 
+
+Idući histogram prikazuje raspodjelu mečeva prema podlogama u proljeće. U proljetnom dijelu sezone uvjerljivo najviše teniskih mečeva igra se na podlozi od zemlje. Više od dvostruko manje mečeva održava se na tvrdoj podlozi. Jako malo mečeva održava se na podlozi od tepiha, a još manje na travi. 
+
+U trećem histogramu promatramo raspodjelu mečeva prema podlogama tijekom ljeta. Najviše mečeva održava se na tvrdoj podlozi, zatim na travi pa na podlozi od zemlje. Svega nekoliko mečeva igra se na podlozi od tepiha. 
+
+Zadnji histogram opisuje raspodjelu mečeva prema podlogama zimi. Tijekom zime prednjače mečevi na tvrdoj podlozi. Dosta manje mečeva igra se na zemlji, zatim na podlozi od tepiha te najmanje na travi.
 
 
 ## Zadatak 2. Postoji li značajna razlika u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom u odnosu na mečeve odigrane na zatvorenom terenu?
+
+Na početku provjeravamo normalnost podataka, najprije pomoću boxplot i Q-Q grafova.
 
 ```{r echo=FALSE}
 
@@ -144,7 +152,11 @@ qqline(open_surface_data, col = "red", lwd = 2)
 # Repeat for closed_surface_data
 qqnorm(closed_surface_data)
 qqline(closed_surface_data, col = "blue", lwd = 2)
+```
 
+Zatim provodimo Lilliefors test: 
+
+```{r echo=FALSE}
 # Perform Lilliefors test
 lillie_test_outdoor <- lillie.test(open_surface_data)
 lillie_test_indoor <- lillie.test(closed_surface_data)
@@ -152,15 +164,37 @@ lillie_test_indoor <- lillie.test(closed_surface_data)
 # Print results
 print(lillie_test_outdoor)
 print(lillie_test_indoor)
+```
 
+Za oba skupa podataka (otvoreni teren i zatvoreni teren), rezultati testova normalnosti (Lilliefors test) pokazuju da podaci nisu normalno distribuirani (p-vrijednosti su manje od 0.05) što se moglo zaključiti i iz grafova. To znači da distribucija podataka odstupa od normalne distribucije.
+
+Onda provodimo F-test za provjeru homogenosti varijanci: 
+
+```{r echo=FALSE}
 var_test_result <- var.test(open_surface_data, closed_surface_data)
 print(var_test_result)
-t_test_result <- t.test(open_surface_data, closed_surface_data, var.equal = TRUE)
+```
+
+F-test za usporedbu varijanci pokazuje da nema značajne razlike u varijancama između otvorenog terena i zatvorenog terena (p-vrijednost = 4.316e-12). Ovaj rezultat ukazuje na homogenost varijanci između ova dva skupa podataka.
+
+Nakon toga provodimo Wilcoxon rang-sum test:
+
+```{r echo=FALSE}
 print(wilcox.test(open_surface_data, closed_surface_data))
+```
+
+Wilcoxon rang-sum test ne pokazuje značajnu razliku u srednjim vrijednostima (medijanama) između otvorenog i zatvorenog terena (p-vrijednost = 0.3191).
+
+Na kraju provodimo t-test za uparene uzorke: 
+
+```{r echo=FALSE}
+t_test_result <- t.test(open_surface_data, closed_surface_data, var.equal = TRUE)
 print(t_test_result)
 ```
 
-TODO Opis ispisa 
+Two Sample t-test također ne pokazuje značajnu razliku između srednjih vrijednosti otvorenog terena i zatvorenog terena (p-vrijednost = 0.4122). 95% interval pouzdanosti za razliku u srednjim vrijednostima uključuje nulu, što dodatno potvrđuje nedostatak značajne razlike.
+
+Na temelju ovih rezultata, možemo zaključiti da nema značajne razlike u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom terenu i mečeva odigranih na zatvorenom terenu.
 
 
 ## Zadatak 3. Ima li razlike u broju serviranih asova na različitim podlogama?	
