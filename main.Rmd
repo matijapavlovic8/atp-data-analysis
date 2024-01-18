@@ -23,7 +23,7 @@ Instalacija potrebnih paketa.
 
 Učitavanje biblioteka.
 
-```{r}
+```{r message=FALSE}
 library(dplyr)
 library(lubridate)
 library(ggplot2)
@@ -41,16 +41,13 @@ for (year in 1991:2023) {
   all_matches <- rbind(all_matches, matches_year)
 }
 
-print(head(all_matches))
+dim(all_matches)
 ```
-
-TODO Opis ispisa
+Skup podataka sadrži informacije o 104682 teniska meča održana od 1991. do 2023. godine uključivo. Svaki meč opisan je s 49 ispod navedenih značajki:
 
 ```{r}
-print(names(all_matches))
+names(all_matches)
 ```
-
-TODO Opis ispisa
 
 ```{r}
 print(summary(all_matches))
@@ -87,7 +84,13 @@ ggplot(t1, aes(x = season, fill = factor(season))) +
   theme_minimal()
 ```
 
-TODO Opisat histogram, šta prikazuje
+Prvi histogram prikazuje raspodjelu mečeva prema podlogama u jesen. Uvjerljivo najviše mečeva u jesen održava se na tvrdoj podlozi. Dosta manje mečeva igra se na podlozi od tepiha, a nešto malo manje na zemlji. Najmanje mečeva u jesenskom dijelu sezone igra se na travi. 
+
+Idući histogram prikazuje raspodjelu mečeva prema podlogama u proljeće. U proljetnom dijelu sezone uvjerljivo najviše teniskih mečeva igra se na podlozi od zemlje. Više od dvostruko manje mečeva održava se na tvrdoj podlozi. Jako malo mečeva održava se na podlozi od tepiha, a još manje na travi. 
+
+U trećem histogramu promatramo raspodjelu mečeva prema podlogama tijekom ljeta. Najviše mečeva održava se na tvrdoj podlozi, zatim na travi pa na podlozi od zemlje. Svega nekoliko mečeva igra se na podlozi od tepiha. 
+
+Zadnji histogram opisuje raspodjelu mečeva prema podlogama zimi. Tijekom zime prednjače mečevi na tvrdoj podlozi. Dosta manje mečeva igra se na zemlji, zatim na podlozi od tepiha te najmanje na travi.
 
 ```{r echo=FALSE}
 ggplot(surface_counts_df, aes(x = Surface, y = Frequency, fill = Surface)) +
@@ -173,10 +176,11 @@ t3 <- select(t3, surface, w_ace, l_ace)
 t3 <- t3 %>%
   mutate(aces = w_ace + l_ace)
 
-hist(t3$aces[t3$surface=='Hard'])
-hist(t3$aces[t3$surface=='Carpet'])
-hist(t3$aces[t3$surface=='Clay'])
-hist(t3$aces[t3$surface=='Grass'])
+par(mfrow = c(2, 2))
+for (surface in unique(t3$surface)){
+hist(t3$aces[t3$surface==surface],
+main = paste("Histogram of served aces on" , surface))
+}
 
 require(nortest)
 print(lillie.test(t3$aces[t3$surface=='Hard']))
