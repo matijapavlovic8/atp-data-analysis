@@ -153,7 +153,7 @@ print(lillie_test_indoor)
 var_test_result <- var.test(open_surface_data, closed_surface_data)
 print(var_test_result)
 t_test_result <- t.test(open_surface_data, closed_surface_data, var.equal = TRUE)
-print(wilcox.test(open_surface_data, closed_surface_data))
+print(wilcox.test(open_surface_data, closed_surface_data, alternative = "two.sided"))
 print(t_test_result)
 ```
 
