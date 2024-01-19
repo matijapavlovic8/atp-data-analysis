@@ -49,8 +49,6 @@ Skup podataka sadrži informacije o 104682 teniska meča održana od 1991. do 20
 names(all_matches)
 ```
 
-TODO Opis ispisa, možda uzet summary samo za neke značajke
-
 ## Zadatak 1. Kakva je distribucija mečeva na specifičnim podlogama u različitim godišnjim dobima?
 
 ```{r echo=FALSE}
@@ -252,6 +250,15 @@ Nakon provedenog testa dobivamo p-vrijednost manju od 0.05 što znači da možem
 
 ## Zadatak 4. Kakva je veza između vrste terena i vjerojatnosti da će mečevi otići u peti set?
 
+Postavljamo nultu hipotezu kako ne postoji statistički značajne veze između vrste terena i vjerojatnosti da će mečevi otići u peti set, a alternativna hipoteza sugerira prisutnost takve veze. Kako bismo testirali ovu hipotezu, koristit ćemo $\chi^2$ test. 
+
+Najprije, provjeravamo pretpostavke kako bismo osigurali ispravnu primjenu testa. 
+
+Omogućena je nezavisnost podataka jer rezultat jednog teniskog meča ne utječe na rezultat drugog meča. 
+
+Također, osiguravamo da su nam podaci kategorički, klasifikacijom vrsta terena i ishoda mečeva u diskretne kategorije. 
+Stvaramo kontingencijsku tablicu: 
+
 ```{r echo=FALSE}
 # Ispitat pretpostavke
 # Fisher alternativa, broj vrijednosti u talici
@@ -263,8 +270,6 @@ contingency_table <- table(t4$surface, t4$sets_played == 5)
 print(contingency_table)
 ```
 
-TODO Opis ispisa
-
 Kontingencijskoj tablici dodajemo sume redaka i stupaca: 
 
 ```{r echo=FALSE}
@@ -272,9 +277,7 @@ contingency_with_sum = addmargins(contingency_table)
 print(contingency_with_sum)
 ```
 
-TODO Opis ispisa
-
-Pretpostavka testa je da očekivana frekvencija pojedinog razreda mora biti veća ili jednaka 5 (`chisq.test()` pretpostavlja da je ovaj uvjet zadovoljen stoga je prije provođenja testa potrebno to provjeriti): 
+Još jedna pretpostavka testa je da očekivana frekvencija pojedinog razreda mora biti veća ili jednaka 5, stoga i to provjeravamo: 
 
 ```{r echo=FALSE}
 for (col_names in colnames(contingency_with_sum)){
@@ -286,15 +289,14 @@ for (col_names in colnames(contingency_with_sum)){
 }
 ```
 
-Sve očekivane frekvencije su veće od 5, nastavljamo sa $\chi^2$ testom.
+Sve očekivane pretpostavke su zadovoljene, nastavljamo sa $\chi^2$ testom.
 
 ```{r echo=FALSE}
 chi_square_result <- chisq.test(contingency_table)
 print(chi_square_result)
 ```
 
-TODO Opis ispisa
-
+Rezultati $\chi^2$ testa ukazuju na to da ne postoji statistički značajna veza između vrste terena na kojem se održavaju teniski mečevi i vjerojatnosti da će mečevi otići u peti set (p-vrijednost = 0.361). S obzirom na p-vrijednost veću od 0.05, ne odbacujemo nultu hipotezu. 
 
 ## Zadatak 5. Možemo li procijeniti broj asova koje će igrač odservirati u tekućoj godini (zadnjoj dostupnoj sezoni) na temelju njegovih rezultata iz prethodnih sezona?	
 
