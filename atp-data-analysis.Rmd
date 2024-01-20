@@ -136,6 +136,7 @@ ggplot(df, aes(x = court_type, y = df)) +
              y = "Total DataFrame") +
         theme_minimal()
 ```
+
 Grafički prikaz ukazuje na moguću razliku između prosječnog broja dvostrukih pogrešaka između mečeva
 odigranih na otvorenom i zatvorenom. 
 Kako bismo provjerili možemo li prihvatiti nultu hipotezu koja pretpostavlja da nema razlike, provest ćemo t-test.
@@ -151,6 +152,7 @@ qqline(open_surface_data, col = "red", lwd = 2)
 qqnorm(closed_surface_data)
 qqline(closed_surface_data, col = "blue", lwd = 2)
 ```
+
 Iz qq-plota vidljivo je da distribucije nisu normalne niti za mečeve na otvorenom niti na zatvorenom jer postoji značajno odstupanje repa.
 Zatim provodimo Lilliefors test: 
 
@@ -217,6 +219,7 @@ xlab = "Number of Served Aces",
 ylab = "Frequency")
 }
 ```
+
 Histogrami ukazuju na to da distrubucija serviranih asova nije normalna niti na jednoj od podloga.
 Normalna distribucija još se provjerava i Lilliefors testom:
 
@@ -227,6 +230,7 @@ print(lillie.test(t3$aces[t3$surface=='Carpet']))
 print(lillie.test(t3$aces[t3$surface=='Clay']))
 print(lillie.test(t3$aces[t3$surface=='Grass']))
 ```
+
 Za svaku od 4 podloge p-vrijednost je manja od 0.05 zbog čega odbacujemo pretpostavku da je distribucija normalna.
 
 2. provjera homogenosti varijanci
@@ -235,6 +239,7 @@ Homogenost varijanci provjerava se Bartletttovim testom:
 bartlett.test(t3$aces ~ t3$surface)
 
 ```
+
 P-vrijednost u Bartlettovom testu manja je od kritične vrijednosti od 0.05 čime se zaključuje da homogenost varijanci nije zadovoljena.
 
 Isto se vidi i u ispisu varijance za svaku od podloga.
@@ -248,6 +253,7 @@ Kako niti jedna od pretpostavki nije zadovoljena koristit ćemo Kruskal-Wallis, 
 ```{r echo=FALSE}
 kruskal.test(aces~surface, data=t3)
 ```
+
 Nakon provedenog testa dobivamo p-vrijednost manju od 0.05 što znači da možemo odbaciti nultu hipotezu u korist prve, odnosno da postoji razlika u broj serviranih asova u odnosu na podlogu, što intuitivno ima smisla jer loptica ne odskače jednako od svih podloga.
 
 
@@ -262,10 +268,8 @@ Omogućena je nezavisnost podataka jer rezultat jednog teniskog meča ne utječe
 Također, osiguravamo da su nam podaci kategorički, klasifikacijom vrsta terena i ishoda mečeva u diskretne kategorije. 
 Stvaramo kontingencijsku tablicu: 
 
-```{r echo=FALSE}
-# Ispitat pretpostavke
-# Fisher alternativa, broj vrijednosti u talici
 
+```{r}
 t4 <- all_matches[all_matches$best_of == 5, ]
 t4$sets_played <- sapply(strsplit(as.character(t4$score), ""), function(x) sum(x == "-"))
 
@@ -294,7 +298,7 @@ for (col_names in colnames(contingency_with_sum)){
 
 Sve očekivane pretpostavke su zadovoljene, nastavljamo sa $\chi^2$ testom.
 
-```{r echo=FALSE}
+```{r}
 chi_square_result <- chisq.test(contingency_table)
 print(chi_square_result)
 ```
