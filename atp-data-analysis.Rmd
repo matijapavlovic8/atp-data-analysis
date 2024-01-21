@@ -376,7 +376,7 @@ aces.by.season <- wl.aggregated.data %>%
 aces.by.season$invRank <- 1 / aces.by.season$rank
 ```
 
-```{r scatter plots}
+```{r scatter plots, echo = FALSE, out.height="33%", out.width="50%"}
 
 plot(aces.by.season$height, aces.by.season$aces)
 
@@ -404,7 +404,7 @@ Valja spomenuti da su u obzir još bili uzeti podatci o servama, ali u postotcim
 
 Provjerit ćemo naše pretpostavke koristeći model jednostavne regresije, po jedan za svaku značajku. Broj asova će biti zavisna varijabla
 
-```{r jendostavna regresija}
+```{r jendostavna regresija, out.height="33%", out.width="50%"}
 fit.invRank = lm(aces ~ invRank, data=aces.by.season)
 
 fit.svpt = lm(aces ~ svpt, data=aces.by.season)
@@ -427,11 +427,12 @@ lines(aces.by.season$firstIn, fit.firstIn$fitted.values, col='red')
 plot(aces.by.season$firstWon, aces.by.season$aces)
 lines(aces.by.season$firstWon, fit.firstWon$fitted.values, col='red')
 ```
+
 ### Normalnost reziduala i homogenost varijance
 
 Normalnost reziduala provjerit ćemo grafički pomoću histograma i qq plota te statistički pomoću Lillieforsovog testa.
 
-```{r normalnost reziduala}
+```{r normalnost reziduala, echo = FALSE, out.height="33%", out.width="50%"}
 # Normalnost reziduala za inverzni rank
 plot(fit.invRank$residuals)
 
