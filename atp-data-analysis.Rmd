@@ -163,7 +163,7 @@ print(lillie_test_outdoor)
 print(lillie_test_indoor)
 ```
 
-Za oba skupa podataka (otvoreni teren i zatvoreni teren), rezultati testova normalnosti (Lilliefors test) pokazuju da podaci nisu normalno distribuirani (p-vrijednosti su manje od 0.05) što se moglo zaključiti i iz grafova. To znači da distribucija podataka odstupa od normalne distribucije.
+Za oba skupa podataka (otvoreni teren i zatvoreni teren), rezultati testova normalnosti (Lilliefors test) pokazuju da podaci nisu normalno distribuirani (p-vrijednosti su manje od 0.05) što se moglo zaključiti i iz grafova.
 
 Provedimo F-test za provjeru homogenosti varijanci: 
 
@@ -176,10 +176,10 @@ F-test za usporedbu varijanci pokazuje da postoji značajna razlika u varijancam
 Kako pretpostavke za t-test nisu zadovoljene koristimo Wilcoxonov test:
 
 ```{r}
-print(wilcox.test(open_surface_data, closed_surface_data))
+print(wilcox.test(open_surface_data, closed_surface_data, alternative = "two.sided"))
 ```
 
-Wilcoxon rang-sum test ne pokazuje značajnu razliku u srednjim vrijednostima (medijanama) između otvorenog i zatvorenog terena (p-vrijednost = 0.3191, dakle ne možemo odbaciti nultu hipotezu).
+Wilcoxon rank-sum test ne pokazuje značajnu razliku u srednjim vrijednostima (medijanama) između otvorenog i zatvorenog terena (p-vrijednost = 0.3191, dakle ne možemo odbaciti nultu hipotezu).
 
 Na temelju ovih rezultata, možemo zaključiti da nema značajne razlike u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom terenu i mečeva odigranih na zatvorenom terenu.
 
