@@ -104,7 +104,64 @@ Zadnji histogram opisuje raspodjelu mečeva prema podlogama zimi. Tijekom zime p
 
 
 ## Zadatak 2. Postoji li značajna razlika u prosječnom broju dvostrukih pogrešaka između mečeva odigranih na otvorenom u odnosu na mečeve odigrane na zatvorenom terenu?
-Prvo provjeravamo ukazuje li boxplot za moguću značajnu razliku.
+
+Na početku ispisujemo statistiku o podatcima, prvo za mečeve odigrane na otvorenom pa na zatvorenom:
+
+```{r echo=FALSE}
+t2 <- all_matches %>%
+  filter(!is.na(w_df) & !is.na(l_df) & !is.na(surface) & w_df != "" & l_df != "" & surface != "")
+t2 <- select(t2, w_df, l_df, surface)
+t2$court_type <- ifelse(t2$surface %in% c("Clay", "Grass", "Hard"), "Outdoor", "Indoor")
+
+t2 <- t2 %>%
+  mutate(df = w_df + l_df)
+
+
+open_surface_data <- t2$df[t2$court_type == 'Outdoor']
+closed_surface_data <- t2$df[t2$court_type == 'Indoor']
+
+summary(open_surface_data)
+summary(closed_surface_data)
+```
+
+S obzirom na veliku razliku između mean i max. vrijednosti pronalazimo outliere te ih izbacujemo iz podataka:
+
+```{r echo=FALSE}
+# Funkcija za izbacivanje outliera
+remove_outliers <- function(data) {
+  q <- quantile(data, c(0.25, 0.75), na.rm = TRUE)
+  iqr <- q[2] - q[1]
+  lower_bound <- q[1] - 1.5 * iqr
+  upper_bound <- q[2] + 1.5 * iqr
+  
+  data_filtered <- data[data >= lower_bound & data <= upper_bound]
+  
+  return(data_filtered)
+}
+
+open_surface_data_no_outliers <- remove_outliers(open_surface_data)
+closed_surface_data_no_outliers <- remove_outliers(closed_surface_data)
+
+summary(open_surface_data_no_outliers)
+summary(closed_surface_data_no_outliers)
+```
+
+Nakon toga stvaramo bar plot za usporedbu prosječnog broja dvostrukih pogrešaka ovisno o tome jesu li mečevi odigrani na otvorenom ili zatvorenom: 
+
+```{r echo=FALSE}
+# BAR PLOT BEZ OUTLIERA
+avg_open_surface_data <- mean(open_surface_data_no_outliers)
+avg_closed_surface_data <- mean(closed_surface_data_no_outliers)
+avg_data <- c(avg_open_surface_data, avg_closed_surface_data)
+barplot(avg_data, 
+        names.arg=c("Outdoor", "Indoor"),
+        main="Average Double Faults on Outdoor and Indoor Type Courts",
+        xlab="Court type",
+        ylab="Average number of double faults",
+        col=c("lightblue", "lightgreen"))
+```
+
+Zatim provjeravamo ukazuje li boxplot za moguću značajnu razliku.
 
 ```{r echo=FALSE}
 
@@ -133,6 +190,7 @@ ggplot(df, aes(x = court_type, y = df)) +
              y = "Total DataFrame") +
         theme_minimal()
 ```
+
 Grafički prikaz ukazuje na moguću razliku između prosječnog broja dvostrukih pogrešaka između mečeva
 odigranih na otvorenom i zatvorenom. 
 Kako bismo provjerili možemo li prihvatiti nultu hipotezu koja pretpostavlja da nema razlike, provest ćemo t-test.
@@ -148,6 +206,7 @@ qqline(open_surface_data, col = "red", lwd = 2)
 qqnorm(closed_surface_data)
 qqline(closed_surface_data, col = "blue", lwd = 2)
 ```
+
 Iz qq-plota vidljivo je da distribucije nisu normalne niti za mečeve na otvorenom niti na zatvorenom jer postoji značajno odstupanje repa.
 Zatim provodimo Lilliefors test: 
 
